@@ -3,13 +3,30 @@ import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { QdrantVectorStore } from "@langchain/qdrant";
 import { Document } from "@langchain/core/documents";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
-import { PDFParse } from "pdf-parse";
 import { v4 as uuidv4 } from "uuid";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
 const INGEST_VERSION = "pdf-parse-direct-v2";
+
+async function extractPdfText(buffer: Buffer) {
+  try {
+    const { PDFParse } = await import("pdf-parse");
+    const pdfData = new Uint8Array(buffer);
+    const parser = new PDFParse({ data: pdfData });
+
+    try {
+      const result = await parser.getText();
+      return result.text;
+    } finally {
+      await parser.destroy();
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown PDF parser error";
+    throw new Error(`PDF text extraction failed: ${message}`);
+  }
+}
 
 export async function GET() {
   return NextResponse.json({
@@ -56,14 +73,7 @@ export async function POST(req: NextRequest) {
     let rawText = "";
 
     if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
-      const pdfData = new Uint8Array(buffer);
-      const parser = new PDFParse({ data: pdfData });
-      try {
-        const result = await parser.getText();
-        rawText = result.text;
-      } finally {
-        await parser.destroy();
-      }
+      rawText = await extractPdfText(buffer);
     } else {
       rawText = buffer.toString("utf-8");
     }
