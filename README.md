@@ -3,18 +3,18 @@
 This project is a high-performance, aesthetically pleasing implementation of a document-grounded AI chat system, inspired by Google NotebookLM. It allows users to upload PDF or TXT files, processes them into a vector database, and enables intelligent conversations where every answer is strictly grounded in the document content.
 
 ## 🚀 Live Demo & Repository
-- **GitHub Repository**: [Link to be provided by USER]
-- **Live Deployment**: [Link to be provided by USER]
+- **GitHub Repository**: [https://github.com/ShreeyaReddyL/NotebookLM-RAG](https://github.com/ShreeyaReddyL/NotebookLM-RAG)
+- **Live Deployment**: [Link to be provided after Vercel deployment]
 
 ---
 
 ## 🛠️ Technology Stack
 - **Frontend**: Next.js 15 (App Router), TypeScript, Vanilla CSS (Glassmorphism design)
 - **RAG Orchestration**: LangChain.js
-- **LLM**: Google Gemini 2.5 Flash
-- **Embeddings**: Google `text-embedding-004`
+- **LLM**: Google Gemini 1.5 Flash
+- **Embeddings**: Google `gemini-embedding-2` (3072 dimensions)
 - **Vector Database**: Qdrant Cloud
-- **PDF Processing**: LangChain `PDFLoader`
+- **PDF Processing**: LangChain `WebPDFLoader` (optimized for Next.js)
 
 ---
 
@@ -22,7 +22,7 @@ This project is a high-performance, aesthetically pleasing implementation of a d
 
 ### 1. Ingestion & Loading
 When a user uploads a document:
-- **PDFs**: Handled via `PDFLoader`, which extracts text while maintaining structure.
+- **PDFs**: Handled via `WebPDFLoader`, which extracts text while maintaining structure and avoiding worker-thread issues in Next.js.
 - **Text Files**: Read directly as UTF-8 strings.
 
 ### 2. Chunking Strategy
@@ -32,7 +32,7 @@ We use the **RecursiveCharacterTextSplitter** from LangChain.
 - **Separators**: Split intelligently at paragraph `\n\n`, then line `\n`, then sentence `. `, then word boundaries.
 
 ### 3. Embedding & Indexing
-- Chunks are converted into high-dimensional vectors using Google's `text-embedding-004` model.
+- Chunks are converted into high-dimensional vectors using Google's latest `gemini-embedding-2` model.
 - Vectors are stored in **Qdrant Cloud** within a unique collection per document to ensure session isolation.
 
 ### 4. Retrieval
@@ -62,7 +62,6 @@ The application features a **premium dark-mode interface**:
 Create a `.env.local` file in the root directory:
 ```env
 GEMINI_API_KEY=your_gemini_key
-GEMINI_CHAT_MODEL=gemini-2.5-flash
 QDRANT_URL=https://your_qdrant_cluster_url
 QDRANT_API_KEY=your_qdrant_api_key
 ```
@@ -84,5 +83,5 @@ Navigate to `http://localhost:3000`.
 - **RAG Pipeline**: Fully implemented (Ingestion → Chunking → Embedding → Storage → Retrieval → Generation).
 - **Chunking**: Documented Recursive Strategy.
 - **Vector DB**: Qdrant Cloud used.
-- **Answer Quality**: Gemini 2.5 Flash with strict groundedness prompts and source citations.
+- **Answer Quality**: Gemini 1.5 Flash with strict groundedness prompts and source citations.
 - **Aesthetics**: Premium, modern UI design.
