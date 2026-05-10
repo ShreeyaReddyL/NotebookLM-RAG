@@ -17,6 +17,22 @@ interface DocInfo {
   chunkCount: number;
 }
 
+async function readApiResponse(res: Response) {
+  const contentType = res.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return res.json();
+  }
+
+  const text = await res.text();
+  const titleMatch = text.match(/<title>(.*?)<\/title>/i);
+  const title = titleMatch?.[1]?.trim();
+  const fallback = title || text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  const message = fallback || `Request failed with status ${res.status}`;
+
+  throw new Error(`Server returned ${res.status}: ${message}`);
+}
+
 export default function Home() {
   const [docInfo, setDocInfo] = useState<DocInfo | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -53,7 +69,7 @@ export default function Home() {
       formData.append("file", file);
 
       const res = await fetch("/api/ingest", { method: "POST", body: formData });
-      const data = await res.json();
+      const data = await readApiResponse(res);
 
       if (!res.ok) throw new Error(data.error || "Upload failed");
 
@@ -113,7 +129,7 @@ export default function Home() {
         }),
       });
 
-      const data = await res.json();
+      const data = await readApiResponse(res);
       if (!res.ok) throw new Error(data.error || "Chat failed");
 
       const assistantMessage: Message = {
