@@ -3,10 +3,23 @@ import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { QdrantVectorStore } from "@langchain/qdrant";
 import { Document } from "@langchain/core/documents";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+import { PDFParse } from "pdf-parse";
 import { v4 as uuidv4 } from "uuid";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
+
+const INGEST_VERSION = "pdf-parse-direct-v2";
+
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    route: "api/ingest",
+    ingestVersion: INGEST_VERSION,
+    pdfParser: "pdf-parse",
+    usesWebPDFLoader: false,
+  });
+}
 
 /**
  * POST /api/ingest
@@ -43,12 +56,14 @@ export async function POST(req: NextRequest) {
     let rawText = "";
 
     if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
-      // Use WebPDFLoader for Next.js compatibility
-      const { WebPDFLoader } = await import("@langchain/community/document_loaders/web/pdf");
-      const blob = new Blob([buffer], { type: "application/pdf" });
-      const loader = new WebPDFLoader(blob);
-      const docs = await loader.load();
-      rawText = docs.map((d) => d.pageContent).join("\n\n");
+      const pdfData = new Uint8Array(buffer);
+      const parser = new PDFParse({ data: pdfData });
+      try {
+        const result = await parser.getText();
+        rawText = result.text;
+      } finally {
+        await parser.destroy();
+      }
     } else {
       rawText = buffer.toString("utf-8");
     }
@@ -105,6 +120,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({
+      ingestVersion: INGEST_VERSION,
       collectionName,
       filename: file.name,
       chunkCount: chunks.length,
