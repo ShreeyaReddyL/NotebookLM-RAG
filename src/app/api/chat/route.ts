@@ -8,6 +8,27 @@ export const maxDuration = 60;
 
 const CHAT_MODEL = process.env.GEMINI_CHAT_MODEL || "gemini-2.5-flash";
 
+interface ChatHistoryMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+function validateServerConfig() {
+  if (!process.env.GEMINI_API_KEY) {
+    return "GEMINI_API_KEY is not configured.";
+  }
+  if (!process.env.QDRANT_URL) {
+    return "QDRANT_URL is not configured.";
+  }
+  if (!/^https?:\/\//i.test(process.env.QDRANT_URL)) {
+    return "QDRANT_URL must start with http:// or https://.";
+  }
+  if (!process.env.QDRANT_API_KEY) {
+    return "QDRANT_API_KEY is not configured.";
+  }
+  return null;
+}
+
 /**
  * POST /api/chat
  * Body: { question: string, collectionName: string, history: {role, content}[] }
@@ -30,11 +51,10 @@ export async function POST(req: NextRequest) {
     if (!collectionName?.trim()) {
       return NextResponse.json({ error: "No document indexed yet." }, { status: 400 });
     }
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json({ error: "GEMINI_API_KEY is not configured." }, { status: 500 });
-    }
-    if (!process.env.QDRANT_URL || !process.env.QDRANT_API_KEY) {
-      return NextResponse.json({ error: "Qdrant environment variables are not configured." }, { status: 500 });
+
+    const configError = validateServerConfig();
+    if (configError) {
+      return NextResponse.json({ error: configError }, { status: 500 });
     }
 
     // ── 1. RETRIEVAL ───────────────────────────────────────────────────────
@@ -88,7 +108,7 @@ ${contextBlocks}
     });
 
     // Include last 6 history messages for multi-turn context
-    const recentHistory = history.slice(-6).map((msg: any) => {
+    const recentHistory = (history as ChatHistoryMessage[]).slice(-6).map((msg) => {
       if (msg.role === "assistant") return new AIMessage(msg.content);
       return new HumanMessage(msg.content);
     });

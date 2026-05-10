@@ -8,24 +8,38 @@ import { v4 as uuidv4 } from "uuid";
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
-const INGEST_VERSION = "pdf-parse-direct-v2";
+type PdfParseModule = {
+  default?: (data: Buffer) => Promise<{ text?: string }>;
+} & ((data: Buffer) => Promise<{ text?: string }>);
+
+const INGEST_VERSION = "pdf-parse-node-v1";
 
 async function extractPdfText(buffer: Buffer) {
   try {
-    const { PDFParse } = await import("pdf-parse");
-    const pdfData = new Uint8Array(buffer);
-    const parser = new PDFParse({ data: pdfData });
-
-    try {
-      const result = await parser.getText();
-      return result.text;
-    } finally {
-      await parser.destroy();
-    }
+    const pdfParseModule = (await import("pdf-parse")) as PdfParseModule;
+    const parsePdf = pdfParseModule.default || pdfParseModule;
+    const result = await parsePdf(buffer);
+    return result.text || "";
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown PDF parser error";
     throw new Error(`PDF text extraction failed: ${message}`);
   }
+}
+
+function validateServerConfig() {
+  if (!process.env.GEMINI_API_KEY) {
+    return "GEMINI_API_KEY is not configured.";
+  }
+  if (!process.env.QDRANT_URL) {
+    return "QDRANT_URL is not configured.";
+  }
+  if (!/^https?:\/\//i.test(process.env.QDRANT_URL)) {
+    return "QDRANT_URL must start with http:// or https://.";
+  }
+  if (!process.env.QDRANT_API_KEY) {
+    return "QDRANT_API_KEY is not configured.";
+  }
+  return null;
 }
 
 export async function GET() {
@@ -52,11 +66,10 @@ export async function POST(req: NextRequest) {
     if (!file) {
       return NextResponse.json({ error: "No file provided." }, { status: 400 });
     }
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json({ error: "GEMINI_API_KEY is not configured." }, { status: 500 });
-    }
-    if (!process.env.QDRANT_URL || !process.env.QDRANT_API_KEY) {
-      return NextResponse.json({ error: "Qdrant environment variables are not configured." }, { status: 500 });
+
+    const configError = validateServerConfig();
+    if (configError) {
+      return NextResponse.json({ error: configError }, { status: 500 });
     }
 
     const allowedTypes = ["application/pdf", "text/plain"];

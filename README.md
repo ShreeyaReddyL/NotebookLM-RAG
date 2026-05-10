@@ -14,7 +14,7 @@ This project is a high-performance, aesthetically pleasing implementation of a d
 - **LLM**: Google Gemini 1.5 Flash
 - **Embeddings**: Google `gemini-embedding-2` (3072 dimensions)
 - **Vector Database**: Qdrant Cloud
-- **PDF Processing**: `pdf-parse` v2
+- **PDF Processing**: `pdf-parse` v1
 
 ---
 
@@ -22,7 +22,7 @@ This project is a high-performance, aesthetically pleasing implementation of a d
 
 ### 1. Ingestion & Loading
 When a user uploads a document:
-- **PDFs**: Handled via `pdf-parse` v2, which extracts text directly in the Node.js API route.
+- **PDFs**: Handled via the Node-compatible `pdf-parse` v1 parser in the API route.
 - **Text Files**: Read directly as UTF-8 strings.
 
 ### 2. Chunking Strategy

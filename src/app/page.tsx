@@ -322,7 +322,7 @@ export default function Home() {
                   Chat with <span className={styles.gradientText}>any document</span>
                 </h1>
                 <p className={styles.emptySubtitle}>
-                  Upload a PDF or text file on the left to get started. Ask questions and get answers grounded in your document's actual content.
+                  Upload a PDF or text file on the left to get started. Ask questions and get answers grounded in your document&apos;s actual content.
                 </p>
                 <div className={styles.featureGrid}>
                   {[
